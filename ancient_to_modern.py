@@ -4,7 +4,7 @@ import re
 lowercase_vowels_without_accents = ['α', 'ε', 'η', 'ι', 'ο', 'υ', 'ω']
 diphthongs = ['αι','αυ','ει','ευ','ου','οι']
 modern_tono = '\u0301'
-modern_diaeresis = '\u0308'
+diaeresis = '\u0308'
 
 
 def remove_accents(text_string):
@@ -63,35 +63,44 @@ def ancient_text_to_modern_pronunciation(ancient_text):
             output_words += remove_accents(word) + ' '
             continue
         # if only two vowels and they make a diphthong, no accent
-        elif vowel_count == 2 and not all(not bool(re.search(re.escape(chars), remove_accents(word))) for chars in diphthongs): 
+        if vowel_count == 2 and not all(not bool(re.search(re.escape(chars), remove_accents(word))) for chars in diphthongs): 
             output_words += remove_accents(word) + ' '
             continue
         # list each letter and its accents
-        ze_list = []
+        non_accent_chars = [char for char in word if not unicodedata.combining(char)]
+        num_non_accent_chars = len(non_accent_chars)
+        accents_in_word = [char for char in word if unicodedata.combining(char)]
+        accent_character_locations = []
+        position = 0
         for char in word:
             if not unicodedata.combining(char):
-                letter = char
-                ze_list.append([letter,[]])
-            else: 
-                ze_list[-1][1].append(char)
-        # if accents on only one letter, modern accent on that letter
-        num_letters_with_accents = 0
-        for i in range(len(ze_list)):
-            if len(ze_list[i][1]):
-                if unicodedata.combining(ze_list[i][1][0]):
-                    num_letters_with_accents+=1
-                    last_letter_with_accent = i
-        if num_letters_with_accents == 1:
+                position+=1
+            else:
+                accent_character_locations.append(position)
+        # if only one accent, modern accent on that letter
+        if num_accents == 1:
             word = ''
-            for i in range(len(ze_list)):
-                word += ze_list[i][0]
-                if i == last_letter_with_accent:
+            for i in range(num_non_accent_chars):
+                word += non_accent_chars[i]
+                if i == accent_character_locations[-1]:
                     word += modern_tono
             output_words += word + ' '
             continue
-        # giving up on other cases. can add: 
-            # explore other accents that don't change how I'd pronounce things. I think ὶ, ῠ/ᾰ
+        # if exactly 2 oxiae, modern tono only on the first one
+        if num_accents == 2:
+            if accents_in_word[0]=='\u0301' and accents_in_word[1]=='\u0301':
+                word = ''
+                for i in range(num_non_accent_chars):
+                    word += non_accent_chars[i]
+                    if i == accent_character_locations[0]:
+                        word += modern_tono
+                output_words += word + ' '
+                continue
+        # if only one oxia and one diaeresis, keep as-is (oxia has same unicode representation as modern tono, ancient and modern diaeresis have the same unicode representations)
+            if (accents_in_word[0]=='\u0301' or accents_in_word[0] == diaeresis) and (accents_in_word[1]=='\u0301' or accents_in_word[1]== diaeresis):
+                output_words += word + ' '
+                continue                
+        # giving up on other cases
         print(word) # list words it's given up on
         output_words += word + ' '
-
     return(output_words)
