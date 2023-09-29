@@ -71,7 +71,7 @@ def ancient_text_to_modern_pronunciation(ancient_text):
         num_non_accent_chars = len(non_accent_chars)
         accents_in_word = [char for char in word if unicodedata.combining(char)]
         accent_character_locations = []
-        position = 0
+        position = -1
         for char in word:
             if not unicodedata.combining(char):
                 position+=1
@@ -82,7 +82,7 @@ def ancient_text_to_modern_pronunciation(ancient_text):
             word = ''
             for i in range(num_non_accent_chars):
                 word += non_accent_chars[i]
-                if i == accent_character_locations[-1]:
+                if i == accent_character_locations[0]:
                     word += modern_tono
             output_words += word + ' '
             continue
