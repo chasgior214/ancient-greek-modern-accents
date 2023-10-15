@@ -6,7 +6,7 @@ This script takes a text in polytonic Greek and outputs (something close to) the
 
 ### Example Usage
 
-The function ancient_text_to_modern_pronunciation, if it is fed the first two sentences of Epictetus' Enchiridion:
+The function ancient_text_to_modern_pronunciation, if it is fed the first two sentences of [Epictetus' Enchiridion](https://dcc.dickinson.edu/epictetus-encheiridion/chapter-1):
 > τῶν ὄντων τὰ μέν ἐστιν ἐφ' ἡμῖν, τὰ δὲ οὐκ ἐφ' ἡμῖν. ἐφ' ἡμῖν μὲν ὑπόληψις, ὁρμή, ὄρεξις, ἔκκλισις καὶ ἑνὶ λόγῳ ὅσα ἡμέτερα ἔργα· οὐκ ἐφ' ἡμῖν δὲ τὸ σῶμα, ἡ κτῆσις, δόξαι, ἀρχαὶ καὶ ἑνὶ λόγῳ ὅσα οὐχ ἡμέτερα ἔργα.
 
 Will output the following:
