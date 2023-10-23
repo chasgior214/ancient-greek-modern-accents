@@ -1,43 +1,15 @@
 import unicodedata
 import re
 
-lowercase_vowels_without_accents = ['α', 'ε', 'η', 'ι', 'ο', 'υ', 'ω']
-diphthongs = ['αι','αυ','ει','ευ','ου','οι']
+lowercase_vowels_without_accents = {'α', 'ε', 'η', 'ι', 'ο', 'υ', 'ω'}
+diphthongs = {'αι','αυ','ει','ευ','ου','οι'}
+accents_i_do_not_care_about = {'\u0313', '\u0314','\u0345'} # the psili, the daseia, and the iota subscript
 modern_tono = '\u0301'
 diaeresis = '\u0308'
 
-
-def remove_accents(text_string):
-    """
-    This function removes all accents from a string
-    """
-    normalized_letter = unicodedata.normalize('NFD', text_string)
-    string_without_accents = ''.join(c for c in normalized_letter if not unicodedata.combining(c))
-    return string_without_accents
-
-def count_accents(text):
-    """
-    This function counts the number of accents in a piece of text
-    """
-    normalized_text = unicodedata.normalize('NFD', text)
-    count = 0
-
-    for char in normalized_text:
-        if unicodedata.category(char) == 'Mn':
-            count += 1
-    return count
-
-def count_vowels(text):
-    """
-    This function counts the number of vowels in a piece of text
-    """
-    normalized_text = unicodedata.normalize('NFD', text)
-    count = 0
-
-    for char in normalized_text:
-        if char.lower() in lowercase_vowels_without_accents:
-            count += 1 
-    return count
+def remove_accents(text): return ''.join(c for c in text if not unicodedata.combining(c))
+def count_accents(text): return sum(1 for char in text if unicodedata.category(char) == 'Mn')
+def count_vowels(text): return len([char for char in text.lower() if char in lowercase_vowels_without_accents])
 
 def ancient_text_to_modern_pronunciation(ancient_text):
     """
@@ -45,27 +17,48 @@ def ancient_text_to_modern_pronunciation(ancient_text):
     """
     text_with_accent_chars_separate = unicodedata.normalize('NFD',ancient_text)
     words = text_with_accent_chars_separate.split()
-    output_words = ''
-    accents_i_do_not_care_about = ['\u0313', '\u0314','\u0345']
-
+    output_words_list = []
+    
     for word in words:
-        # strip the accents that mean nothing (the psili, the daseia, and the iota subscript)
+        # strip the accents that don't matter
         word = ''.join([char for char in word if char not in accents_i_do_not_care_about])
         # count remaining accents
         num_accents = count_accents(word) 
         # if no accent, no accents
         if num_accents == 0:
-            output_words += word + ' '
+            output_words_list.append(word + ' ')
             continue
         # if one vowel, no accents
         vowel_count = count_vowels(word)
         if vowel_count == 1:
-            output_words += remove_accents(word) + ' '
+            output_words_list.append(remove_accents(word) + ' ')
             continue
-        # if only two vowels and they make a diphthong, no accent
+        # if only two vowels and they make a diphthong
         if vowel_count == 2 and not all(not bool(re.search(re.escape(chars), remove_accents(word))) for chars in diphthongs): 
-            output_words += remove_accents(word) + ' '
-            continue
+            # if the diphthong has no diaeresis, no accents
+            if "\u0308" not in word:
+                output_words_list.append(remove_accents(word) + ' ')
+                continue
+            # if the diphthong has only a diaeresis, keep word as-is
+            elif num_accents == 1: 
+                output_words_list.append(word + ' ')
+                continue
+            # if the diphthong has a diaeresis and one oxia, keep word as-is (tono has same unicode representation as oxia)
+            elif num_accents == 2 and '\u0301' in word:
+                output_words_list.append(word + ' ')
+                continue
+            # if the diphthong has a diaeresis and either one perispomeni or one vareia, replace perispomeni/vareia with tono
+            elif num_accents == 2:
+                if '\u0300' in word:
+                    output_words_list.append(word.replace('\u0300', '\u0301') + ' ')
+                    continue
+                elif '\u0342' in word:
+                    output_words_list.append(word.replace('\u0342', '\u0301') + ' ')
+                    continue
+            # if the diphthong has a diaeresis and some other combination of accents, give up
+            else:
+                output_words_list.append(word + ' ')
+                continue
         # list each letter and its accents
         non_accent_chars = [char for char in word if not unicodedata.combining(char)]
         num_non_accent_chars = len(non_accent_chars)
@@ -84,23 +77,31 @@ def ancient_text_to_modern_pronunciation(ancient_text):
                 word += non_accent_chars[i]
                 if i == accent_character_locations[0]:
                     word += modern_tono
-            output_words += word + ' '
+            output_words_list.append(word + ' ')
             continue
-        # if exactly 2 oxiae, modern tono only on the first one
+        # if exactly 2 accents, and both are either oxiae, perispomeni, or vareia, modern tono only on the first one
         if num_accents == 2:
-            if accents_in_word[0]=='\u0301' and accents_in_word[1]=='\u0301':
+            if accents_in_word[0] in {'\u0300', '\u0301', '\u0342'} and accents_in_word[1] in {'\u0300', '\u0301', '\u0342'}:
                 word = ''
                 for i in range(num_non_accent_chars):
                     word += non_accent_chars[i]
                     if i == accent_character_locations[0]:
                         word += modern_tono
-                output_words += word + ' '
+                output_words_list.append(word + ' ')
                 continue
-        # if only one oxia and one diaeresis, keep as-is (oxia has same unicode representation as modern tono, ancient and modern diaeresis have the same unicode representations)
-            if (accents_in_word[0]=='\u0301' or accents_in_word[0] == diaeresis) and (accents_in_word[1]=='\u0301' or accents_in_word[1]== diaeresis):
-                output_words += word + ' '
-                continue                
+        # if one diaeresis and either an oxia, a perispomeni, or a vareia, keep diaeresis as-is (ancient and modern diaeresis have the same unicode representations), and turn the other accent into a tono
+            if diaeresis in accents_in_word:
+                if '\u0301' in accents_in_word[0] or '\u0301' in accents_in_word[1]:
+                    output_words_list.append(word + ' ')
+                    continue
+                elif '\u0342' in accents_in_word[0] or '\u0342' in accents_in_word[1]:
+                    output_words_list.append(word.replace('\u0342', '\u0301') + ' ')
+                    continue
+                elif '\u0300' in accents_in_word[0] or '\u0300' in accents_in_word[1]:
+                    output_words_list.append(word.replace('\u0300', '\u0301') + ' ')
+                    continue
         # giving up on other cases
         print(word) # list words it's given up on
-        output_words += word + ' '
+        output_words_list.append(word + ' ')
+    output_words = ''.join(output_words_list)
     return(output_words)
