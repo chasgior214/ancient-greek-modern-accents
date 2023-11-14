@@ -103,5 +103,6 @@ def ancient_text_to_modern_pronunciation(ancient_text):
         # giving up on other cases
         print(word) # list words it's given up on
         output_words_list.append(word + ' ')
-    output_words = ''.join(output_words_list)
+    # recombine accents into letters
+    output_words = unicodedata.normalize('NFC',''.join(output_words_list))
     return(output_words)
