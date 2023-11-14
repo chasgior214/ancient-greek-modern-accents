@@ -23,7 +23,7 @@ print('The monotonic representation of the first chapter of the Enchiridion is:\
 print(enchir_modern_ch_1)
 
 TTS_string = enchir_modern_ch_1
-azure_TTS_API_key = 'APIKEY'
+azure_TTS_API_key = None
 azure_TTS_region = 'eastus'
 
 text_to_speech(TTS_string, azure_key=azure_TTS_API_key, azure_region=azure_TTS_region, azure_voice='el-GR-AthinaNeural', fileName='example/output.mp3')
