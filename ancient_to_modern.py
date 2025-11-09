@@ -10,6 +10,7 @@ diaeresis = '\u0308'
 def remove_accents(text): return ''.join(c for c in text if not unicodedata.combining(c))
 def count_accents(text): return sum(1 for char in text if unicodedata.category(char) == 'Mn')
 def count_vowels(text): return len([char for char in text.lower() if char in lowercase_vowels_without_accents])
+def has_diphthong(text): return any(d in remove_accents(text.lower()) for d in diphthongs)
 
 def split_text_into_words(text: str):
     """Splits a text into a list of words and punctuation/whitespace so that words are delimited correctly."""
@@ -33,7 +34,7 @@ def modern_accents_on_word(word: str, debug: bool = False):
     # if no accent, no accents
     if num_accents == 0:
         if debug:
-            if vowel_count > 1 and (vowel_count > 2 or all(not bool(re.search(re.escape(chars), remove_accents(word.lower()))) for chars in diphthongs)): print(f'Word should have accent(s) but could not find appropriate position(s): {word}')
+            if vowel_count > 1 and (vowel_count > 2 or not has_diphthong(word)): print(f'Word should have accent(s) but could not find appropriate position(s): {word}')
         return word
 
     # if one vowel, no accents
@@ -41,7 +42,7 @@ def modern_accents_on_word(word: str, debug: bool = False):
         return remove_accents(word)
 
     # if only two vowels and they make a diphthong
-    if vowel_count == 2 and not all(not bool(re.search(re.escape(chars), remove_accents(word.lower()))) for chars in diphthongs): 
+    if vowel_count == 2 and has_diphthong(word):
         # if the diphthong has no diaeresis, no accents
         if "\u0308" not in word:
             return remove_accents(word)
@@ -83,8 +84,9 @@ def modern_accents_on_word(word: str, debug: bool = False):
                 word += modern_tono
         return word
 
-    # if exactly 2 accents, and both are either oxiae, perispomeni, or vareia, modern tono only on the first one
+    # if exactly 2 accents
     if num_accents == 2:
+        # if both accents are either oxiae, perispomeni, or vareia, modern tono only on the first one
         if accents_in_word[0] in {'\u0300', '\u0301', '\u0342'} and accents_in_word[1] in {'\u0300', '\u0301', '\u0342'}:
             word = ''
             for i in range(num_non_accent_chars):
@@ -93,14 +95,14 @@ def modern_accents_on_word(word: str, debug: bool = False):
                     word += modern_tono
             return word
 
-    # if one diaeresis and either an oxia, a perispomeni, or a vareia, keep diaeresis as-is (ancient and modern diaeresis have the same unicode representations), and turn the other accent into a tono
+        # if one diaeresis and either an oxia, a perispomeni, or a vareia, keep diaeresis as-is (ancient and modern diaeresis have the same unicode representations), and turn the other accent into a tono
         if diaeresis in accents_in_word:
-            if '\u0301' in accents_in_word[0] or '\u0301' in accents_in_word[1]:
+            if '\u0301' in accents_in_word:
                 return word
-            elif '\u0342' in accents_in_word[0] or '\u0342' in accents_in_word[1]:
-                return word.replace('\u0342', '\u0301')
-            elif '\u0300' in accents_in_word[0] or '\u0300' in accents_in_word[1]:
-                return word.replace('\u0300', '\u0301')
+            elif '\u0342' in accents_in_word:
+                return word.replace('\u0342', modern_tono)
+            elif '\u0300' in accents_in_word:
+                return word.replace('\u0300', modern_tono)
 
     # give up on other cases
     if debug: print(f"Could not find appropriate accent(s) for: {word}")
