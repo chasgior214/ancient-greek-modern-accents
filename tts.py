@@ -17,18 +17,39 @@ def text_processing(ancient_string):
             final_word_list.append(consonant_prefix+word)
             consonant_prefix = ''
     final_string = ' '.join(final_word_list)
-    
+
     return final_string
 
-def text_to_speech(ancient_text, azure_key=None, azure_region=None, azure_voice=None, fileName = None):
+def text_to_speech(ancient_text: str, azure_key: str = None, azure_region: str = None, azure_voice: str = None, fileName: str = None, skip_processing: bool = False):
     """
-    ancient_text: string of polytonic Ancient Greek text
-    azure_voice: string of Azure voice name ('el-GR-AthinaNeural', 'el-GR-NestorasNeural')
-    azure_key: string of Azure key
-    azure_region: string of Azure region (e.g. 'eastus')
-    fileName: string of file name to save to (e.g. 'output.mp3')
+    Converts polytonic Ancient Greek text to audio using Modern Greek phonology.
+
+    Parameters
+    ----------
+    ancient_text : str
+        String of polytonic Ancient Greek text to be converted to audio.
+    azure_key : str, optional
+        Azure Speech Service key. If provided, Azure's TTS service will be used. Otherwise, gTTS is used.
+    azure_region : str, optional
+        Azure region for the Speech Service (e.g., 'eastus'). Required if `azure_key` is provided.
+    azure_voice : str, optional
+        Azure voice name to use for speech synthesis (e.g., 'el-GR-AthinaNeural'). Required if `azure_key` is provided.
+    fileName : str, optional
+        File name to save the generated audio (e.g., 'output.mp3'). If not provided, the audio will not be saved.
+    skip_processing : bool, optional
+        If True, skips text processing using the `text_processing` function and directly uses the input `ancient_text` for TTS. Default is False.
+
+    Returns
+    -------
+    result : azure.cognitiveservices.speech.SpeechSynthesisResult or gtts.gTTS
+        The result of the text-to-speech operation. If Azure TTS is used, returns an Azure SpeechSynthesisResult.
+        If gTTS is used, returns a gTTS object.
     """
-    text = text_processing(ancient_text)
+    if skip_processing:
+        text = ancient_text
+    else:
+        text = text_processing(ancient_text)
+
     if azure_key:
         import azure.cognitiveservices.speech as speechsdk
         speech_config = speechsdk.SpeechConfig(subscription=azure_key, region=azure_region)
@@ -36,7 +57,8 @@ def text_to_speech(ancient_text, azure_key=None, azure_region=None, azure_voice=
         speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config)
         result = speech_synthesizer.speak_text_async(text).get()
         if fileName:
-            with open(fileName, 'wb') as file: file.write(result.audio_data)
+            with open(fileName, 'wb') as file:
+                file.write(result.audio_data)
         return result
     else:
         from gtts import gTTS

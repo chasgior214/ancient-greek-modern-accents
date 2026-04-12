@@ -2,26 +2,26 @@ import unicodedata
 import re
 
 lowercase_vowels_without_accents = {'α', 'ε', 'η', 'ι', 'ο', 'υ', 'ω'}
-diphthongs = {'αι','αυ','ει','ευ','ου','οι'}
-unimportant_accents = {'\u0313', '\u0314','\u0345'} # the psili, the daseia, and the iota subscript
+diphthongs = {'αι','αυ','ει','ευ','ου','οι', 'υι'}
+ignored_marks = {'\u0313', '\u0314','\u0345', '\u0306', '\u0304'} # the psili, daseia, iota subscript, breve, and macron
 modern_tono = '\u0301'
 diaeresis = '\u0308'
 
-def remove_accents(text): return ''.join(c for c in text if not unicodedata.combining(c))
+def remove_accents(text): return ''.join(char for char in text if not unicodedata.combining(char))
 def count_accents(text): return sum(1 for char in text if unicodedata.category(char) == 'Mn')
 def count_vowels(text): return len([char for char in text.lower() if char in lowercase_vowels_without_accents])
 def has_diphthong(text): return any(d in remove_accents(text.lower()) for d in diphthongs)
 
-def split_text_into_words(text: str):
-    """Splits a text into a list of words and punctuation/whitespace so that words are delimited correctly."""
+def split_text_into_words(text: str) -> list:
+    """Splits a text into a list of words and punctuation/whitespace so that words are delimited correctly"""
     # This regex matches sequences of Greek letters (including accented ones) and separates them from punctuation
     return re.findall(r'\b[\w\u0300-\u036f]+\b|[^\w\s]|\s+', text, re.UNICODE)
 
-def modern_accents_on_word(word: str, debug: bool = False):
-    """Applies modern Greek accentuation rules to a single word."""
+def modern_accents_on_word(word: str, debug: bool = False) -> str:
+    """Applies modern Greek accentuation rules to a single word"""
 
     # strip accents that don't matter
-    word = ''.join([char for char in word if char not in unimportant_accents])
+    word = ''.join([char for char in word if char not in ignored_marks])
 
     # count remaining accents, number of vowels
     num_accents = count_accents(word)
@@ -34,7 +34,8 @@ def modern_accents_on_word(word: str, debug: bool = False):
     # if no accent, no accents
     if num_accents == 0:
         if debug:
-            if vowel_count > 1 and (vowel_count > 2 or not has_diphthong(word)): print(f'Word should have accent(s) but could not find appropriate position(s): {word}')
+            if vowel_count > 1 and (vowel_count > 2 or not has_diphthong(word)):
+                print(f'Word should have accent(s) but could not find appropriate position(s): {word}')
         return word
 
     # if one vowel, no accents
@@ -108,7 +109,7 @@ def modern_accents_on_word(word: str, debug: bool = False):
     if debug: print(f"Could not find appropriate accent(s) for: {word}")
     return word
 
-def ancient_text_to_modern_pronunciation(ancient_text : str, debug: bool = False):
+def ancient_text_to_modern_pronunciation(ancient_text : str, debug: bool = False) -> str:
     """
     Takes polytonic Greek text, converts its diacritics (accents) into monotonic orthography corresponding to Modern Greek phonology.
 
